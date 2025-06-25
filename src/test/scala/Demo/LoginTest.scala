@@ -21,21 +21,17 @@ class LoginTest extends Simulation{
       .check(jsonPath("$.token").saveAs("authToken"))
     )
 
-  .exec { session =>
-    println(">>> Token guardado: " + session("authToken").asOption[String].getOrElse("NO TOKEN"))
-    session
-  }
     .exec(
       http("Create Contact")
         .post(s"contacts")
         .header("Authorization", "Bearer ${authToken}")
-        .body(StringBody(s"""{"firstName": "Christian","lastName": "Gomez","birthdate": "1970-01-01","email": "jdoe@fake.com","phone": "8005555555","street1": "1 Main St.","street2": "Apartment A","city": "Anytown","stateProvince": "KS","postalCode": "12345","country": "USA"}""")).asJson
+        .body(StringBody(s"""{"firstName": "Nuevo","lastName": "Gomez","birthdate": "1970-01-01","email": "jdoe@fake.com","phone": "8005555555","street1": "1 Main St.","street2": "Apartment A","city": "Anytown","stateProvince": "KS","postalCode": "12345","country": "USA"}""")).asJson
         .check(status.is(201))
     )
 
 
   // 3 Load Scenario
   setUp(
-    scn.inject(atOnceUsers(1))
+    scn.inject(atOnceUsers(10))
   ).protocols(httpConf);
 }

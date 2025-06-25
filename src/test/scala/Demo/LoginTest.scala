@@ -21,6 +21,11 @@ class LoginTest extends Simulation{
       .check(status.is(200))
       .check(jsonPath("$.token").saveAs("authToken"))
     )
+
+  .exec { session =>
+    println(">>> Token guardado: " + session("authToken").asOption[String].getOrElse("NO TOKEN"))
+    session
+  }
     .exec(
       http("Create Contact")
         .post(s"contacts")

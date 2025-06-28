@@ -11,7 +11,7 @@ class LoginTest extends Simulation {
     .acceptHeader("application/json")
 
   // 2. Feeder desde archivo CSV con datos realistas
-  val contactFeeder = csv("data/contacts.csv").random
+  val contactFeeder = csv("resources/contacts.csv").random
 
   // 3. Escenario: login y creación de múltiples contactos desde CSV
   val scn = scenario("Login and Create Contacts from CSV")

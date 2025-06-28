@@ -22,6 +22,10 @@ class LoginTest extends Simulation {
       .check(jsonPath("$.token").saveAs("authToken"))
     )
     .repeat(10) { // Crea 10 contactos por usuario
+      .before {
+        println(scala.io.Source.fromResource("contacts.csv").getLines().take(1).mkString("\n"))
+      }
+
       feed(contactFeeder)
         .exec(http("Create Contact")
           .post("contacts")

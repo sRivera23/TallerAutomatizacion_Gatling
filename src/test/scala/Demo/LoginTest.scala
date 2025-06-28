@@ -6,55 +6,45 @@ import Demo.Data._
 
 class LoginTest extends Simulation {
 
-  // Verificación previa
-  println("Verificando contenido del archivo CSV:")
-  println(scala.io.Source.fromResource("contacts.csv").getLines().take(1).mkString("\n"))
-
   // 1. Configuración HTTP
   val httpConf = http.baseUrl(url)
     .acceptHeader("application/json")
 
-  // 2. Feeder desde archivo CSV con datos realistas
+  // 2. Feeder desde CSV para contactos
   val contactFeeder = csv("contacts.csv").random
 
-  // 3. Escenario: login y creación de múltiples contactos desde CSV
-  val scn = scenario("Login and Create Contacts from CSV")
+  // 3. Escenario: login y creación de 1 contacto
+  val scn = scenario("Login and Create One Contact")
     .exec(http("Login")
       .post("users/login")
       .body(StringBody(s"""{"email": "$email", "password": "$password"}""")).asJson
       .check(status.is(200))
       .check(jsonPath("$.token").saveAs("authToken"))
     )
-    .repeat(10) {
-      feed(contactFeeder)
-        .exec { session =>
-          println("Contacto cargado: " + session("firstName").asOption[String])
-          session
-        }
-        .exec(http("Create Contact")
-          .post("contacts")
-          .header("Authorization", "Bearer ${authToken}")
-          .body(StringBody(
-            """{
-              "firstName": "${firstName}",
-              "lastName": "${lastName}",
-              "birthdate": "${birthdate}",
-              "email": "${email}",
-              "phone": "${phone}",
-              "street1": "${street1}",
-              "street2": "${street2}",
-              "city": "${city}",
-              "stateProvince": "${stateProvince}",
-              "postalCode": "${postalCode}",
-              "country": "${country}"
-            }"""
-          )).asJson
-          .check(status.is(201))
-        )
-    }
+    .feed(contactFeeder)
+    .exec(http("Create Contact")
+      .post("contacts")
+      .header("Authorization", "Bearer ${authToken}")
+      .body(StringBody(
+        """{
+          "firstName": "${firstName}",
+          "lastName": "${lastName}",
+          "birthdate": "${birthdate}",
+          "email": "${email}",
+          "phone": "${phone}",
+          "street1": "${street1}",
+          "street2": "${street2}",
+          "city": "${city}",
+          "stateProvince": "${stateProvince}",
+          "postalCode": "${postalCode}",
+          "country": "${country}"
+        }"""
+      )).asJson
+      .check(status.is(201))
+    )
 
-  // 4. Carga del escenario
+  // 4. Carga del escenario: 10 usuarios en 50s
   setUp(
-    scn.inject(rampUsers(1).during(10))
+    scn.inject(rampUsers(15).during(50))
   ).protocols(httpConf)
 }

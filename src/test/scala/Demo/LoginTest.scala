@@ -6,6 +6,10 @@ import Demo.Data._
 
 class LoginTest extends Simulation {
 
+  // Verificación previa
+  println("Verificando contenido del archivo CSV:")
+  println(scala.io.Source.fromResource("contacts.csv").getLines().take(1).mkString("\n"))
+
   // 1. Configuración HTTP
   val httpConf = http.baseUrl(url)
     .acceptHeader("application/json")
@@ -21,12 +25,12 @@ class LoginTest extends Simulation {
       .check(status.is(200))
       .check(jsonPath("$.token").saveAs("authToken"))
     )
-    .repeat(10) { // Crea 10 contactos por usuario
-      .before {
-        println(scala.io.Source.fromResource("contacts.csv").getLines().take(1).mkString("\n"))
-      }
-
+    .repeat(10) {
       feed(contactFeeder)
+        .exec { session =>
+          println("Contacto cargado: " + session("firstName").asOption[String])
+          session
+        }
         .exec(http("Create Contact")
           .post("contacts")
           .header("Authorization", "Bearer ${authToken}")
@@ -51,6 +55,6 @@ class LoginTest extends Simulation {
 
   // 4. Carga del escenario
   setUp(
-    scn.inject(rampUsers(1).during(10)) // 1 usuario = 10 contactos
+    scn.inject(rampUsers(1).during(10))
   ).protocols(httpConf)
 }

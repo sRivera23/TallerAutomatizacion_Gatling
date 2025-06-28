@@ -10,55 +10,43 @@ class LoginTest extends Simulation {
   val httpConf = http.baseUrl(url)
     .acceptHeader("application/json")
 
-  // 2. Feeder para generar datos únicos de contacto
-  val contactFeeder = Iterator.continually(
-    Map(
-      "firstName" -> s"Nombre${scala.util.Random.nextInt(1000)}",
-      "lastName" -> s"Apellido${scala.util.Random.nextInt(1000)}",
-      "birthdate" -> "1970-01-01",
-      "email" -> (s"user${System.currentTimeMillis()}${scala.util.Random.nextInt(1000)}@fake.com"),
-      "phone" -> (s"800${scala.util.Random.nextInt(9999999).toString.padTo(7, '0')}"),
-      "street1" -> "1 Main St.",
-      "street2" -> "Apartment A",
-      "city" -> "Anytown",
-      "stateProvince" -> "KS",
-      "postalCode" -> "12345",
-      "country" -> "USA"
-    )
-  )
+  // 2. Feeder desde archivo CSV con datos realistas
+  val contactFeeder = csv("data/contacts.csv").random
 
-  // 3. Escenario: login y creación de contacto
-  val scn = scenario("Login and Create Unique Contact")
+  // 3. Escenario: login y creación de múltiples contactos desde CSV
+  val scn = scenario("Login and Create Contacts from CSV")
     .exec(http("Login")
       .post("users/login")
       .body(StringBody(s"""{"email": "$email", "password": "$password"}""")).asJson
       .check(status.is(200))
       .check(jsonPath("$.token").saveAs("authToken"))
     )
-    .feed(contactFeeder) // Alimentar datos únicos
-    .exec(http("Create Contact")
-      .post("contacts")
-      .header("Authorization", "Bearer ${authToken}")
-      .body(StringBody(
-        """{
-          "firstName": "${firstName}",
-          "lastName": "${lastName}",
-          "birthdate": "${birthdate}",
-          "email": "${email}",
-          "phone": "${phone}",
-          "street1": "${street1}",
-          "street2": "${street2}",
-          "city": "${city}",
-          "stateProvince": "${stateProvince}",
-          "postalCode": "${postalCode}",
-          "country": "${country}"
-        }"""
-      )).asJson
-      .check(status.is(201))
-    )
+    .repeat(10) { // Crea 10 contactos por usuario
+      feed(contactFeeder)
+        .exec(http("Create Contact")
+          .post("contacts")
+          .header("Authorization", "Bearer ${authToken}")
+          .body(StringBody(
+            """{
+              "firstName": "${firstName}",
+              "lastName": "${lastName}",
+              "birthdate": "${birthdate}",
+              "email": "${email}",
+              "phone": "${phone}",
+              "street1": "${street1}",
+              "street2": "${street2}",
+              "city": "${city}",
+              "stateProvince": "${stateProvince}",
+              "postalCode": "${postalCode}",
+              "country": "${country}"
+            }"""
+          )).asJson
+          .check(status.is(201))
+        )
+    }
 
   // 4. Carga del escenario
   setUp(
-    scn.inject(rampUsers(10).during(20))
+    scn.inject(rampUsers(1).during(10)) // 1 usuario = 10 contactos
   ).protocols(httpConf)
 }
